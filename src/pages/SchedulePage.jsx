@@ -124,6 +124,7 @@ export function SchedulePage() {
 
   const rail = (
     <div className="space-y-3 lg:space-y-5">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-1 lg:gap-3">
       <SearchInput
         value={filters.q}
         onChange={(v) => set('q', v)}
@@ -138,6 +139,7 @@ export function SchedulePage() {
         aria-label="Describe what you want"
         data-testid="semantic-input"
       />
+      </div>
 
       <div className="hidden rounded-xl border border-hairline bg-raised p-3 lg:block">
         <div className="flex items-center justify-between">
