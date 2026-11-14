@@ -72,6 +72,7 @@ venues ──< rooms ──< sessions >── tracks
                         ├──< session_speakers >── speakers
                         ├──< session_tags >────── tags
                         ├──< reservations >────── users
+                        ├──< session_embeddings   (one row, vector for search by meaning)
                         ├──< check_ins >───────── users
                         └──< ratings >─────────── users
 
@@ -119,6 +120,14 @@ attendees, so it is not a count of rows here.
 **`check_ins`** / **`ratings`** — one of each per attendee per session.
 A rating (`stars` 1–5, optional `comment`) needs a check-in and a finished
 session; see `server/lib/attendance.js`.
+
+## session_embeddings
+
+`session_id` (PK, `ON DELETE CASCADE`), `model`, `vector` (Float32 BLOB) and
+`text_hash` (sha256 of the session's title, subtitle, abstract, track, tags and
+speaker names). Written only by `npm run embed`; **not** in `dropAll` and untouched
+by `seed.js`, so a reseed keeps paid-for vectors and the hash catches stale ones next
+run. Search ignores them unless every row's `model` matches the current embedder.
 
 ## Time
 

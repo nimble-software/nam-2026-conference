@@ -19,6 +19,7 @@
     "verify:ui": "npm run db:seed && playwright test --ui",
     "shot": "node scripts/shot.mjs",
     "show": "node scripts/show.mjs",
+    "embed": "node scripts/embed.mjs",
     "avatars": "node scripts/fetch-avatars.mjs"
   },
   "dependencies": {

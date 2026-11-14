@@ -32,6 +32,8 @@ const qs = (params = {}) => {
 export const getBootstrap = () => api('/bootstrap');
 export const getLive = ({ day, time }) => api(`/live${qs({ day, time })}`);
 export const getSessions = (filters) => api(`/sessions${qs(filters)}`);
+/** `{ mode: 'semantic' | 'keyword', results }` — by meaning, or the keyword match when search-by-meaning is not set up. */
+export const searchSessions = (q) => api(`/sessions/search${qs({ q })}`);
 export const getSession = (id, userId) => api(`/sessions/${id}${qs({ userId })}`);
 export const getFollowedSessions = (userId) => api(`/sessions${qs({ followedBy: userId })}`);
 export const getSpeakers = (filters) => api(`/speakers${qs(filters)}`);
