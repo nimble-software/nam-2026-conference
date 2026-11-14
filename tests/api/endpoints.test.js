@@ -123,6 +123,20 @@ describe('Every endpoint answers', () => {
     }
   });
 
+  test('trackSlug takes several tracks and returns the union of the singles', async () => {
+    const boot = await api.json('/bootstrap');
+    const [a, b] = boot.tracks.map((t) => t.slug);
+    const ofA = await api.json(`/sessions?trackSlug=${a}`);
+    const ofB = await api.json(`/sessions?trackSlug=${b}`);
+    const both = await api.json(`/sessions?trackSlug=${a},${b}`);
+    assert.ok(ofA.length > 0 && ofB.length > 0);
+    assert.deepEqual(new Set(both.map((s) => s.id)), new Set([...ofA, ...ofB].map((s) => s.id)));
+    assert.equal(both.length, ofA.length + ofB.length);
+    const padded = await api.json(`/sessions?trackSlug=${encodeURIComponent(` ${a} , ,${b},`)}`);
+    assert.equal(padded.length, both.length);
+    assert.equal((await api.json('/sessions?trackSlug=no-such-track')).length, 0);
+  });
+
   test('the health check reports ok and the session count', async () => {
     const res = await api.get('/health');
     assert.equal(res.status, 200, `GET /health → ${res.status}`);

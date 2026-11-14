@@ -22,6 +22,63 @@ test.describe('Schedule', () => {
     await expect(rail).not.toContainText('today');
   });
 
+  test('track pills toggle, and the list is the union of the selected tracks', async ({ page }) => {
+    const days = await conferenceDays();
+    const boot = await (await fetch(`${API}/bootstrap`)).json();
+    const [a, b] = boot.tracks;
+    const count = async (slugs) => {
+      const qs = new URLSearchParams({ day: days[1] });
+      if (slugs) qs.set('trackSlug', slugs);
+      return (await (await fetch(`${API}/sessions?${qs}`)).json()).length;
+    };
+    const total = await count();
+    const nA = await count(a.slug);
+    const nAB = await count(`${a.slug},${b.slug}`);
+    expect(nAB).toBeGreaterThan(nA);
+
+    const pill = (t) => page.getByRole('button', { name: t.shortName ?? t.name, exact: true });
+    const all = page.getByRole('button', { name: 'All', exact: true });
+    const shows = async (n) => {
+      await waitForResults(page);
+      await expect(page.getByTestId('result-count')).toHaveText(new RegExp(`^${n} sessions?$`));
+    };
+
+    await visit(page, `/schedule?day=${days[1]}`);
+    const filters = page.getByRole('button', { name: /^Filters/ });
+    if (await filters.isVisible()) await filters.click();
+
+    await pill(a).click();
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'true');
+    await shows(nA);
+    await pill(b).click();
+    await expect(pill(b)).toHaveAttribute('aria-pressed', 'true');
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'true');
+    await shows(nAB);
+    await shotForPR(page, 'two tracks selected in the schedule filter');
+    await pill(a).click();
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'false');
+    await shows(await count(b.slug));
+    await pill(a).click();
+    await shows(nAB);
+    await all.click();
+    await expect(all).toHaveAttribute('aria-pressed', 'true');
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'false');
+    await expect(page).not.toHaveURL(/track=/);
+    await shows(total);
+
+    // a shared link opens with both active; a single-track link is as before
+    await visit(page, `/schedule?day=${days[1]}&track=${a.slug},${b.slug}`);
+    if (await filters.isVisible()) await filters.click();
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'true');
+    await expect(pill(b)).toHaveAttribute('aria-pressed', 'true');
+    await shows(nAB);
+    await visit(page, `/schedule?day=${days[1]}&track=${a.slug}`);
+    if (await filters.isVisible()) await filters.click();
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'true');
+    await expect(pill(b)).toHaveAttribute('aria-pressed', 'false');
+    await shows(nA);
+  });
+
   test('switching day changes the results', async ({ page }) => {
     await visit(page, '/schedule?view=list');
     await waitForResults(page);
