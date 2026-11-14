@@ -36,6 +36,10 @@ you arrive mid-conference and the clock ticks while you watch. Pin it with
   real map, travel times between them.
 - **Calendar export** — any session as `.ics` from its page; your whole agenda
   from the API, with no button yet.
+- **Photo Booth** — not built yet. Attendees will photograph themselves with
+  their laptop camera on `/photo-booth` and post to a gallery every attendee
+  can see. You can delete your own photo; nothing is moderated. The gallery
+  starts empty, because the app never invents people.
 
 ## The stack
 
