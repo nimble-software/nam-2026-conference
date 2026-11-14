@@ -193,6 +193,7 @@ describe('Every endpoint answers', () => {
       'PUT users/:id/reservations/:sessionId', 'PUT users/:id/checkins/:sessionId',
       'PUT users/:id/ratings/:sessionId', 'PUT users/:id/follows/:speakerId',
       'DELETE users/:id/reservations/:sessionId', 'DELETE users/:id/follows/:speakerId',
+      'GET photos/', 'DELETE photos/:id',   // driven by photos.test.js
     ];
 
     const missing = mounted.filter((route) => !covered.includes(route));

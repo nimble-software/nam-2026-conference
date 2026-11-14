@@ -260,6 +260,14 @@ CREATE TABLE IF NOT EXISTS session_embeddings (
   vector     BLOB NOT NULL,
   text_hash  TEXT NOT NULL
 );
+-- Photo Booth: JPEG data URLs, downscaled in the browser. Dropped on a reseed,
+-- so a fresh seed has an empty gallery — the app never invents people.
+CREATE TABLE IF NOT EXISTS photos (
+  id        INTEGER PRIMARY KEY,
+  user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  image     TEXT NOT NULL,
+  posted_at TEXT NOT NULL            -- conference clock, 'YYYY-MM-DDTHH:MM'
+);
 CREATE INDEX IF NOT EXISTS idx_st_tag             ON session_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_user  ON reservations(user_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_user      ON check_ins(user_id);
@@ -274,6 +282,7 @@ export function migrate() {
 export function dropAll() {
   db.pragma('foreign_keys = OFF');
   db.exec(`
+    DROP TABLE IF EXISTS photos;
     DROP TABLE IF EXISTS ratings;
     DROP TABLE IF EXISTS check_ins;
     DROP TABLE IF EXISTS reservations;

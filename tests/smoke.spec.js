@@ -16,6 +16,7 @@ const ROUTES = [
   { path: '/food', name: 'Food', heading: /Food & drink/i },
   { path: '/expo', name: 'Expo', heading: /Partners & sponsors/i },
   { path: '/code-of-conduct', name: 'Code of conduct', heading: /Code of conduct/i },
+  { path: '/photo-booth', name: 'Photo Booth', heading: /^Photo Booth$/i },
   { path: '/accessibility', name: 'Accessibility', heading: /^Accessibility$/i },
 ];
 

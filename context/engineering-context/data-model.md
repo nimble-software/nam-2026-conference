@@ -121,6 +121,13 @@ attendees, so it is not a count of rows here.
 A rating (`stars` 1–5, optional `comment`) needs a check-in and a finished
 session; see `server/lib/attendance.js`.
 
+## photos
+
+Photo Booth. `id`, `user_id` (`ON DELETE CASCADE`), `image` (a JPEG data URL, at most 640 px
+on its long side, downscaled in the browser) and `posted_at` (`YYYY-MM-DDTHH:MM`, the
+conference clock the client sent, not the wall clock). In `dropAll`, and `seed.js` never
+writes it, so a fresh seed has an empty gallery.
+
 ## session_embeddings
 
 `session_id` (PK, `ON DELETE CASCADE`), `model`, `vector` (Float32 BLOB) and
