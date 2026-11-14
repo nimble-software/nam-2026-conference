@@ -145,7 +145,7 @@ sticky `glass` header, `<main id="main">`, and the footer.
   side at most 640) and `toDataURL('image/jpeg', 0.8)`; Retake returns to live, Post sends it
   with `clock.day`/`clock.time`. `cameraMessage(err)` words a blocked, missing or unsupported
   camera, shown in `camera-blocked` with no capture button. The gallery
-  (`photo-gallery`, `grid-cols-2 md:grid-cols-3`) lists `photo-card`s with the poster and
+  (`photo-gallery`, `grid-cols-2 md:grid-cols-3`) lists `photo-card`s (each carrying `data-photo-id`) with the poster and
   `posted {relativeDate(postedAt, clock)}`; `photo-delete` appears only when
   `photo.userId === currentUserId`; no photos shows `photo-empty`. Other test ids:
   `photo-capture`, `photo-retake`, `photo-post`.

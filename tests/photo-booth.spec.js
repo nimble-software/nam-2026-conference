@@ -33,22 +33,19 @@ test('take a photo, post it, only its poster can delete it, and a blocked camera
     await expect(capture).toBeVisible();
     await capture.click();
 
-    // a clean gallery shows the invitation (only when no one else has posted)
-    const before = await (await request.get(`${API}/photos`)).json();
-    if (before.length === 0) await expect(page.getByTestId('photo-empty')).toBeVisible();
-
     const reply = page.waitForResponse((r) => r.url().endsWith('/api/photos') && r.request().method() === 'POST');
     await page.getByTestId('photo-post').click();
     posted = await (await reply).json();
 
-    // appears at once, first, with the poster's name and a time from the pinned clock
-    const first = page.getByTestId('photo-card').first();
+    // appears at once, with the poster's name and a time from the pinned clock.
+    // The gallery is shared with the other project's concurrent post, so find
+    // this test's own card by its id rather than by position.
+    const first = page.locator(`[data-testid="photo-card"][data-photo-id="${posted.id}"]`);
     await expect(first).toBeVisible();
     const me = await (await request.get(`${API}/users/${lane.user}`)).json();
     await expect(first).toContainText(me.name);
     await expect(first).toContainText(/posted 1m ago/i);
     await expect(first.getByTestId('photo-delete')).toBeVisible();
-    await expect(page.getByTestId('photo-empty')).toHaveCount(0);
     const box = await first.boundingBox();
     expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width);
     await shotForPR(page, 'Photo Booth gallery');
@@ -57,8 +54,9 @@ test('take a photo, post it, only its poster can delete it, and a blocked camera
     const other = await browser.newContext({ permissions: ['camera'] });
     const otherPage = await other.newPage();
     await visit(otherPage, '/photo-booth', { as: lane.user === 1 ? 3 : 1, at });
-    await expect(otherPage.getByTestId('photo-card').first()).toBeVisible();
-    await expect(otherPage.getByTestId('photo-delete')).toHaveCount(0);
+    const mine = otherPage.locator(`[data-testid="photo-card"][data-photo-id="${posted.id}"]`);
+    await expect(mine).toBeVisible();
+    await expect(mine.getByTestId('photo-delete')).toHaveCount(0);
     await other.close();
 
     // a blocked camera: a message, and no capture button

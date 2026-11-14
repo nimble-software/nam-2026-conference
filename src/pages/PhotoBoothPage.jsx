@@ -147,7 +147,7 @@ export function PhotoBoothPage() {
         {photos?.length > 0 && (
           <ul className="grid grid-cols-2 gap-3 md:grid-cols-3">
             {photos.map((photo) => (
-              <li key={photo.id} data-testid="photo-card" className="card overflow-hidden">
+              <li key={photo.id} data-testid="photo-card" data-photo-id={photo.id} className="card overflow-hidden">
                 <img src={photo.image} alt={`Photo posted by ${photo.userName}`} className="aspect-[4/3] w-full object-cover" />
                 <div className="flex items-center justify-between gap-2 p-2.5 text-xs">
                   <div className="min-w-0">
