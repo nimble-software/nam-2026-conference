@@ -7,6 +7,7 @@ import { db, DB_PATH } from './db.js';
 import { metaRouter } from './routes/meta.js';
 import { sessionsRouter } from './routes/sessions.js';
 import { speakersRouter } from './routes/speakers.js';
+import { photosRouter } from './routes/photos.js';
 import { usersRouter } from './routes/users.js';
 
 const PORT = process.env.PORT ?? 3001;
@@ -23,11 +24,13 @@ if (!existsSync(DB_PATH)) {
 
 export const app = express();
 app.use(cors());
-app.use(express.json());
+// a Photo Booth picture is a ~100 KB data URL; the default 100 kb is below it
+app.use(express.json({ limit: '1mb' }));
 
 app.use('/api', metaRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/speakers', speakersRouter);
+app.use('/api/photos', photosRouter);
 app.use('/api/users', usersRouter);
 
 app.get('/api/health', (req, res) => {

@@ -9,6 +9,7 @@ files:
   - server/lib/embed.js
   - scripts/embed.mjs
   - server/routes/meta.js
+  - server/routes/photos.js
   - src/main.jsx
   - src/App.jsx
   - src/lib/api.js
@@ -16,6 +17,7 @@ files:
 tests:
   - tests/api/contracts.test.js
   - tests/api/endpoints.test.js
+  - tests/api/photos.test.js
   - tests/unit/query.test.js
 related: [seats, agenda, clock, schedule, speakers, venues, seed, testing]
 ---
@@ -85,10 +87,20 @@ batched `IN (…)` queries — use it for lists; bare `toSession` has no speaker
 | `GET /announcements` | pinned first, newest first |
 | `GET /live?day&time` | `{ day, time, dayStartsAt, dayEndsAt, nextSlot, happeningNow, upNext }`; 400 without both params; an unknown day gives empty arrays and null bounds |
 
+**Photo Booth** (`server/routes/photos.js`, `/api/photos`; the app's one `express.json({ limit: '1mb' })`
+body, since a photo outgrows the default 100 kb). `GET /` is every photo newest first
+(`posted_at DESC, id DESC`) as `toPhoto` → `{ id, userId, userName, image, postedAt }`.
+`POST /` takes `{ userId, image, day, time }` and answers 201 with the photo: 404 unknown
+attendee, 400 unless `image` is a `data:image/jpeg;base64,` URL under 400 000 characters, or
+without `day` and `time` (the client's conference clock, stored as `YYYY-MM-DDTHH:MM`).
+`DELETE /:id?userId=` is 404 for an unknown photo, 403 unless `userId` is the poster, else
+`{ ok: true }`. There is no authentication, so "the poster" is the `userId` claimed.
+Client: `getPhotos`, `postPhoto`, `deletePhoto` in `api.js`.
+
 **Client shell.** `src/main.jsx`: `StrictMode → BrowserRouter → Toaster → ConferenceProvider
 → App`. `src/App.jsx` shows `ErrorState` if bootstrap failed, `Spinner` until `ready`, then
 the routes. `/opening-presentation`, `/product-presentation` and `/engineering-presentation` sit outside it, full screen; the rest are inside `<Layout>`: `/` Home, `/schedule`, `/sessions/:id`, `/speakers`,
-`/speakers/:id`, `/my-agenda`, `/my-plan` (→ `/my-agenda`), `/venues`, `/food`, `/expo`,
+`/speakers/:id`, `/my-agenda`, `/my-plan` (→ `/my-agenda`), `/venues`, `/food`, `/expo`, `/photo-booth`,
 `/code-of-conduct`, `/accessibility`, `*` NotFound.
 
 **`useConference()`** (`store.jsx:ConferenceProvider`) spreads the whole bootstrap payload

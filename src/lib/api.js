@@ -46,6 +46,11 @@ export const getUser = (id) => api(`/users/${id}`);
 export const getSchedule = (userId) => api(`/users/${userId}/schedule`);
 export const getToday = (userId, { day, time }) => api(`/users/${userId}/today${qs({ day, time })}`);
 
+export const getPhotos = () => api('/photos');
+export const postPhoto = ({ userId, image, day, time }) =>
+  api('/photos', { method: 'POST', body: JSON.stringify({ userId, image, day, time }) });
+export const deletePhoto = (id, userId) => api(`/photos/${id}${qs({ userId })}`, { method: 'DELETE' });
+
 export const reserveSeat = (userId, sessionId, now) =>
   api(`/users/${userId}/reservations/${sessionId}`, { method: 'PUT', body: JSON.stringify(now ?? {}) });
 export const releaseSeat = (userId, sessionId) => api(`/users/${userId}/reservations/${sessionId}`, { method: 'DELETE' });

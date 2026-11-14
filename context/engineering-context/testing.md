@@ -107,6 +107,11 @@ Entry shape: `'area.case': { desktop: { user, day, slot?, clean? }, mobile: {…
 `slot` own their slot on day index 2 outright — they assert an exact seat count, so any other
 lane booking *a session in one of those slots* that day, even for a different attendee, can
 shift it mid-assertion. The slot is what is owned, not the attendee.
+`photobooth.post` (Jonas and Andy, Day 2, `agenda: false`) posts one photo through the page and
+deletes it in `finally`. `tests/photo-booth.spec.js` runs Chromium on its fake camera
+(`--use-fake-device-for-media-stream`, `--use-fake-ui-for-media-stream`, `permissions: ['camera']`)
+and fakes a blocked one by overriding `navigator.mediaDevices.getUserMedia` to reject with
+`NotAllowedError` in an `addInitScript`. Unit and API tests post a constant tiny JPEG data URL.
 It also names the one read-only fixture: Jonas and Kenji on Day 2, the promotion
 fixture `tests/seats.spec.js` reads.
 

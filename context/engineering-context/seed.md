@@ -92,6 +92,7 @@ pins it. Only dates change between machines; the PRNG output does not.
 
 ## Invariants
 
+- Nothing seeds `photos`: the Photo Booth gallery starts empty, since the app never invents people.
 - Never `Math.random()` or `Date.now()`-dependent values other than `START_DATE`.
 - `sessions.recording_url/slides_url/repo_url` are always null; ratings are always 0 at insert.
 - Seeded seats obey the API's rules: one seat per slot per attendee, nobody queues while

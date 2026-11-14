@@ -197,6 +197,11 @@ export const toUser = (row, extra = {}) => ({
   ...extra,
 });
 
+/** A Photo Booth row joined to its poster: `SELECT p.*, u.name AS user_name FROM photos p JOIN users u …`. */
+export const toPhoto = (row) => ({
+  id: row.id, userId: row.user_id, userName: row.user_name, image: row.image, postedAt: row.posted_at,
+});
+
 export const toAnnouncement = (row) => ({
   id: row.id, title: row.title, body: row.body, kind: row.kind,
   venueId: row.venue_id, postedAt: row.posted_at, pinned: !!row.pinned,

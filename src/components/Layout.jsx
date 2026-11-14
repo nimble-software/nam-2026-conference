@@ -15,6 +15,7 @@ const NAV = [
   { to: '/venues', label: 'Venues', icon: 'building' },
   { to: '/food', label: 'Food', icon: 'food' },
   { to: '/expo', label: 'Expo', icon: 'grid' },
+  { to: '/photo-booth', label: 'Photo Booth', icon: 'camera' },
 ];
 
 function Logo() {

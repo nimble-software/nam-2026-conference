@@ -22,6 +22,8 @@ files:
   - src/components/RouteChange.jsx
   - src/pages/HomePage.jsx
   - src/pages/NotFoundPage.jsx
+  - src/pages/PhotoBoothPage.jsx
+  - src/lib/photo.js
   - src/pages/PresentationPage.jsx
   - src/pages/ProductPresentationPage.jsx
   - src/pages/OpeningPresentationPage.jsx
@@ -30,6 +32,8 @@ files:
   - public/brand/
 tests:
   - tests/unit/format.test.js
+  - tests/unit/photo.test.js
+  - tests/photo-booth.spec.js
   - tests/unit/presentation.test.js
   - tests/unit/deck-contrast.test.js
   - tests/smoke.spec.js
@@ -133,7 +137,18 @@ sticky `glass` header, `<main id="main">`, and the footer.
 - `NAV` array (`to, label, icon, end`) drives both the desktop nav (`lg+`,
   `aria-label="Main"`) and the mobile menu (`aria-label="Mobile"`, toggled by
   the "Open menu"/"Close menu" button, closes on navigation, locks body scroll).
-  `/my-agenda` shows `reservations.size` as a badge.
+  `/my-agenda` shows `reservations.size` as a badge. `Photo Booth` (`/photo-booth`, icon `camera`)
+  is the last entry.
+- **`PhotoBoothPage`** — camera panel above the gallery. `Camera` runs `getUserMedia` in an
+  effect (tracks stopped on unmount) through the states `asking | live | taken | blocked`;
+  Take photo draws the `<video>` onto a canvas sized by `fitSize` (`src/lib/photo.js`, long
+  side at most 640) and `toDataURL('image/jpeg', 0.8)`; Retake returns to live, Post sends it
+  with `clock.day`/`clock.time`. `cameraMessage(err)` words a blocked, missing or unsupported
+  camera, shown in `camera-blocked` with no capture button. The gallery
+  (`photo-gallery`, `grid-cols-2 md:grid-cols-3`) lists `photo-card`s with the poster and
+  `posted {relativeDate(postedAt, clock)}`; `photo-delete` appears only when
+  `photo.userId === currentUserId`; no photos shows `photo-empty`. Other test ids:
+  `photo-capture`, `photo-retake`, `photo-post`.
 - Footer: three `nav` columns (Programme, On site, Conference) built from an
   inline array of `[label, to]`, plus `conference.dates · conference.city` from
   bootstrap and a plain `<a href="/api/bootstrap">`.
