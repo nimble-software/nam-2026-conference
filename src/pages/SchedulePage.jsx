@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useConference, useFetch } from '../lib/store.jsx';
 import { useMediaQuery } from '../lib/useMediaQuery.js';
@@ -45,7 +45,19 @@ export function SchedulePage() {
     setParams(next, { replace: true });
   };
 
-  const { data, loading, error, reload } = useFetch(
+  // "Describe what you want": typing waits for a pause before it asks the server,
+  // because every search embeds the query.
+  const ask = params.get('ask') ?? '';
+  const [askDraft, setAskDraft] = useState(ask);
+  useEffect(() => {
+    if (askDraft.trim() === ask) return undefined;
+    const t = setTimeout(() => set('ask', askDraft.trim()), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [askDraft, ask]);
+  const semantic = useFetch(() => (ask ? api.searchSessions(ask) : Promise.resolve(null)), [ask]);
+
+  const { data, loading: listLoading, error: listError, reload } = useFetch(
     () => api.getSessions({
       day: filters.day,
       trackSlug: filters.track,
@@ -58,10 +70,14 @@ export function SchedulePage() {
     [filters.day, filters.track, filters.venue, filters.level, filters.format, filters.tag, filters.q],
   );
 
-  const sessions = data ?? [];
-  const activeKeys = ['track', 'venue', 'level', 'format', 'tag', 'q'].filter((k) => filters[k] && filters[k] !== ALL);
+  const asking = Boolean(ask);
+  const loading = asking ? semantic.loading : listLoading;
+  const error = asking ? semantic.error : listError;
+  const sessions = asking ? (semantic.data?.results ?? []) : (data ?? []);
+  const activeKeys = ['track', 'venue', 'level', 'format', 'tag', 'q', 'ask'].filter((k) => (k === 'ask' ? ask : filters[k] && filters[k] !== ALL));
   // Keep a view the user chose, never the list a filter forced.
   const clearAll = () => {
+    setAskDraft('');
     const next = new URLSearchParams({ day: filters.day });
     if (params.get('view')) next.set('view', params.get('view'));
     setParams(next);
@@ -88,7 +104,7 @@ export function SchedulePage() {
     setParams(next, { replace: true });
   };
 
-  const view = blocker ? 'list' : requestedView;
+  const view = blocker || asking ? 'list' : requestedView;
   const showGrid = view === 'grid';
 
   const slots = useMemo(() => {
@@ -113,6 +129,14 @@ export function SchedulePage() {
         onChange={(v) => set('q', v)}
         placeholder="Search sessions…"
         data-testid="search-input"
+      />
+
+      <SearchInput
+        value={askDraft}
+        onChange={setAskDraft}
+        placeholder="Describe what you want…"
+        aria-label="Describe what you want"
+        data-testid="semantic-input"
       />
 
       <div className="hidden rounded-xl border border-hairline bg-raised p-3 lg:block">
@@ -267,7 +291,14 @@ export function SchedulePage() {
                 {loading ? 'Loading…' : plural(sessions.length, 'session')}
               </span>
             </div>
-            {blocker && !loading && (
+            {asking && !loading && !error && (
+              <p className="text-[11px] font-medium text-muted" data-testid="semantic-mode">
+                {semantic.data?.mode === 'semantic'
+                  ? `Sessions closest in meaning to “${ask}”, on every day`
+                  : 'Keyword results: semantic search is not set up'}
+              </p>
+            )}
+            {blocker && !asking && !loading && (
               <button
                 type="button"
                 onClick={clearBlocker}
@@ -285,15 +316,31 @@ export function SchedulePage() {
 
           {!loading && !error && sessions.length === 0 && (
             <EmptyState
-              title={filters.q ? `No sessions match “${filters.q}”` : 'No sessions match'}
+              title={asking ? `Nothing close to “${ask}”` : filters.q ? `No sessions match “${filters.q}”` : 'No sessions match'}
               description="Try widening the filters — or clearing them entirely."
               action={<Button size="sm" onClick={clearAll}>Clear filters</Button>}
             />
           )}
 
-          {!loading && sessions.length > 0 && showGrid && <ScheduleGrid sessions={sessions} />}
+          {!loading && asking && sessions.length > 0 && (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-3">
+              {sessions.map((s) => (
+                <div key={s.id} className="relative" data-testid="semantic-result">
+                  <SessionCard session={s} />
+                  {s.score != null && (
+                    <span data-testid="semantic-score" title="How close this is in meaning to what you described"
+                      className="pointer-events-none absolute right-3 top-3 rounded-full bg-violet-500/25 px-2 py-0.5 text-[10px] font-bold text-violet-100">
+                      {Math.round(s.score * 100)}%
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
-          {!loading && sessions.length > 0 && !showGrid && slots.map(([time, items]) => (
+          {!loading && !asking && sessions.length > 0 && showGrid && <ScheduleGrid sessions={sessions} />}
+
+          {!loading && !asking && sessions.length > 0 && !showGrid && slots.map(([time, items]) => (
             <section key={time} className="card overflow-hidden" data-testid={`slot-${time}`}>
               <header className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3 sm:px-5">
                 <div className="flex items-baseline gap-3">

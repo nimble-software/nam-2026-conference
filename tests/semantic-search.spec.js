@@ -33,7 +33,7 @@ test('describing a talk lists the sessions closest in meaning, where the keyword
   // …the describing box ranks the talk first, with a score
   await page.getByTestId('semantic-input').fill(description);
   await expect(page.getByTestId('semantic-mode')).toContainText(/closest in meaning/i);
-  const first = page.locator('article').first();
+  const first = page.getByTestId('semantic-result').first();
   await expect(first).toContainText(talk.title);
   await expect(first.getByTestId('semantic-score')).toHaveText(/\d+%/);
   await expect(page).toHaveURL(/ask=/);

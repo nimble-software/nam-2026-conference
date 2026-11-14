@@ -252,6 +252,14 @@ CREATE INDEX IF NOT EXISTS idx_sessions_day       ON sessions(day);
 CREATE INDEX IF NOT EXISTS idx_sessions_track     ON sessions(track_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_room      ON sessions(room_id);
 CREATE INDEX IF NOT EXISTS idx_ss_speaker         ON session_speakers(speaker_id);
+-- Kept across a reseed on purpose (not in dropAll): paid-for vectors, caught
+-- when stale by text_hash on the next npm run embed.
+CREATE TABLE IF NOT EXISTS session_embeddings (
+  session_id INTEGER PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE,
+  model      TEXT NOT NULL,
+  vector     BLOB NOT NULL,
+  text_hash  TEXT NOT NULL
+);
 CREATE INDEX IF NOT EXISTS idx_st_tag             ON session_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_reservations_user  ON reservations(user_id);
 CREATE INDEX IF NOT EXISTS idx_checkins_user      ON check_ins(user_id);

@@ -11,6 +11,9 @@ files:
   - server/routes/sessions.js
 tests:
   - tests/schedule.spec.js
+  - tests/semantic-search.spec.js
+  - tests/api/search.test.js
+  - tests/unit/embed.test.js
   - tests/session.spec.js
 related: [seats, attendance, agenda, venues, speakers, ui, clock]
 ---
@@ -50,7 +53,24 @@ day) and `competing` (same day and `starts_at`, top 6 by `avg_rating`). Those tw
 lists are plain `toSession` — no speakers/tags. **`/:id.ics`** is registered
 *before* `/:id` and delegates to `ical.js:sessionCalendar` (agenda doc).
 
-**`SchedulePage`** reads everything from `useSearchParams`:
+**`GET /api/sessions/search?q=`** — search by meaning, registered before `/:id`.
+Returns `{ mode, results }`. `mode: 'semantic'`: the query is embedded
+(`RETRIEVAL_QUERY`), ranked by `rank()` against `session_embeddings`, kept at or
+above `MIN_SCORE` (0.55), and a session whose title or a speaker's name is
+literally in the query (or the query in it) gets `LITERAL_BOOST` so exact titles
+and acronyms still win; results are full sessions plus `score` (capped at 1).
+`mode: 'keyword'`: the same `LIKE` clause as `?q=` (shared constant `LIKE_CLAUSE`),
+no `score` — used when there is no `GEMINI_API_KEY` or stub, nothing is embedded,
+any stored row has another `model` than `currentModel()`, or the embed call
+throws. A missing `q` is a 400. Details of `embed.js`: architecture doc.
+
+**`SchedulePage`** has a second box, `data-testid="semantic-input"`, under the `q`
+box (on a phone, behind `Filters` like the rest). Typing waits 400 ms, then
+writes the `ask` URL param; with `ask` set the page calls `api.searchSessions`
+and shows a grid of `SessionCard`s, each in a `semantic-result` wrapper with a
+`semantic-score` percentage, ignoring every other filter, the day and the grid
+view; `result-count` counts them, and `semantic-mode` says "closest in meaning"
+or, on fallback, "Keyword results: semantic search is not set up". It reads everything else from `useSearchParams`:
 `day` (default `clock.day` if it is a conference day, else `days[0].date`),
 `track`, `venue` (venue id), `level`, `format`, `tag` (topic slug), `q`, `view`.
 Page keys map to API keys in the `useFetch` call (`track→trackSlug`,
@@ -138,6 +158,10 @@ room/amenities/step-free card, topic chips linking `/schedule?tag=`, `alsoInRoom
   test of it adds a value *and* removes one, checking `result-count` against the
   API's counts each time — a list that only ever grows passes a test that never
   takes anything away.
+
+- Embeddings are never needed for `npm test` or CI: tests set `ORBIT_EMBEDDER=stub`; the
+  browser spec's server gets it from `playwright.config.js` `webServer.env`, and its
+  `beforeAll` runs `scripts/embed.mjs` (lane `schedule.semantic-search`, read-only).
 
 ## Where to change…
 

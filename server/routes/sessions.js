@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { SESSION_SELECT, hydrateSessions, toSession, toSpeaker } from '../lib/query.js';
 import { seatState } from '../lib/seats.js';
+import { embed, rank, blobToVec, currentModel, isConfigured, MIN_SCORE, LITERAL_BOOST } from '../lib/embed.js';
 import { baseUrlFor, sessionCalendar } from '../lib/ical.js';
 
 export const sessionsRouter = Router();
@@ -24,6 +25,64 @@ const alsoInRoom = db.prepare(`${SESSION_SELECT}
 const competingWith = db.prepare(`${SESSION_SELECT}
   WHERE s.day = ? AND s.starts_at = ? AND s.id != ? ORDER BY s.avg_rating DESC LIMIT 6`);
 
+/** The keyword filter behind `?q=`, shared with the search fallback. */
+const LIKE_CLAUSE = `(s.title LIKE ? OR s.abstract LIKE ? OR s.subtitle LIKE ?
+      OR EXISTS (SELECT 1 FROM session_speakers ss JOIN speakers sp ON sp.id = ss.speaker_id
+                 WHERE ss.session_id = s.id AND sp.name LIKE ?))`;
+const likeArgs = (q) => [`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`];
+
+const embeddingRows = db.prepare('SELECT session_id, model, vector FROM session_embeddings');
+const titlesAndSpeakers = db.prepare(`
+  SELECT s.id, s.title, (SELECT GROUP_CONCAT(sp.name, '|') FROM session_speakers ss
+    JOIN speakers sp ON sp.id = ss.speaker_id WHERE ss.session_id = s.id) AS speakers FROM sessions s`);
+
+/** Sessions whose title or a speaker's name is literally in the query, or the query in them. */
+function literalBoosts(q) {
+  const needle = q.trim().toLowerCase();
+  const hit = (name) => name.length >= 3 && (needle.includes(name) || (needle.length >= 3 && name.includes(needle)));
+  const boosts = new Map();
+  for (const r of titlesAndSpeakers.all()) {
+    const names = [r.title, ...(r.speakers ? r.speakers.split('|') : [])].map((n) => n.toLowerCase());
+    if (names.some(hit)) boosts.set(r.id, LITERAL_BOOST);
+  }
+  return boosts;
+}
+
+/** Ranked `{ id, score }` by meaning, or null when semantic search is not set up (no key, nothing stored, or another model). */
+async function semanticRanking(q) {
+  if (!isConfigured()) return null;
+  const rows = embeddingRows.all();
+  if (!rows.length || rows.some((r) => r.model !== currentModel())) return null;
+  try {
+    const [queryVec] = await embed([q], { task: 'RETRIEVAL_QUERY' });
+    return rank(queryVec, rows.map((r) => ({ id: r.session_id, vector: blobToVec(r.vector) })),
+      { threshold: MIN_SCORE, boosts: literalBoosts(q) });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * GET /api/sessions/search?q=
+ * `{ mode: 'semantic', results: [session + score] }` ranked by meaning, or
+ * `{ mode: 'keyword', results }` — the `?q=` LIKE matches, no score — when
+ * semantic search is not set up.
+ */
+sessionsRouter.get('/search', async (req, res) => {
+  const q = String(req.query.q ?? '').trim();
+  if (!q) return res.status(400).json({ error: 'q is required' });
+
+  const ranked = await semanticRanking(q);
+  if (!ranked) {
+    const rows = db.prepare(`${SESSION_SELECT} WHERE ${LIKE_CLAUSE} ORDER BY s.day, s.starts_at, r.name`).all(...likeArgs(q));
+    return res.json({ mode: 'keyword', results: hydrateSessions(rows) });
+  }
+  const byId = new Map(hydrateSessions(
+    ranked.length ? db.prepare(`${SESSION_SELECT} WHERE s.id IN (${ranked.map(() => '?').join(',')})`).all(...ranked.map((r) => r.id)) : [],
+  ).map((s) => [s.id, s]));
+  res.json({ mode: 'semantic', results: ranked.map((r) => ({ ...byId.get(r.id), score: Math.min(1, r.score) })) });
+});
+
 /**
  * GET /api/sessions
  * Filters: day, trackSlug, tagSlug, venueId, roomId, level, format, speakerId, q, reservedBy, followedBy
@@ -41,10 +100,8 @@ sessionsRouter.get('/', (req, res) => {
   if (level) { where.push('s.level = ?'); args.push(level); }
   if (format) { where.push('s.format = ?'); args.push(format); }
   if (q) {
-    where.push(`(s.title LIKE ? OR s.abstract LIKE ? OR s.subtitle LIKE ?
-      OR EXISTS (SELECT 1 FROM session_speakers ss JOIN speakers sp ON sp.id = ss.speaker_id
-                 WHERE ss.session_id = s.id AND sp.name LIKE ?))`);
-    args.push(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`);
+    where.push(LIKE_CLAUSE);
+    args.push(...likeArgs(q));
   }
   if (tagSlug) {
     where.push('EXISTS (SELECT 1 FROM session_tags st JOIN tags tg ON tg.id = st.tag_id WHERE st.session_id = s.id AND tg.slug = ?)');

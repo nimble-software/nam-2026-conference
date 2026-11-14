@@ -72,6 +72,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: `http://localhost:${process.env.WEB_PORT ?? 5173}`,
+    // search-by-meaning runs on the offline stub, so no key and no network
+    env: { ORBIT_EMBEDDER: 'stub' },
     reuseExistingServer: !process.env.CI && !process.env.ORBIT_LANE,
     timeout: 90_000,
     stdout: 'ignore',

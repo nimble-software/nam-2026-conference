@@ -6,6 +6,8 @@ files:
   - server/index.js
   - server/db.js
   - server/lib/query.js
+  - server/lib/embed.js
+  - scripts/embed.mjs
   - server/routes/meta.js
   - src/main.jsx
   - src/App.jsx
@@ -104,6 +106,19 @@ every card updates without refetching; read `seatsFor(id)` before the page's pay
 **`useFetch(fn, deps)`** returns `{ data, loading, error, reload }`. It re-runs when `deps`
 change or `reload()` bumps a nonce, keeps the previous `data` while loading, and ignores
 responses from a superseded run.
+
+## Semantic search plumbing
+
+`server/lib/embed.js` is the only reader of `GEMINI_API_KEY`; nothing under `src/`
+imports it and `tests/api/search.test.js` fails if a response or a `src/` file names
+the key. It holds `embed(texts, { task })` (Gemini `gemini-embedding-001`, 768 dims,
+L2-normalised; `setEmbedder(fn)` or `ORBIT_EMBEDDER=stub` swaps in an offline hashed
+bag-of-words, read on every call), `currentModel()` (what is stored beside each
+vector: `STUB_MODEL` under a stub), the pure `cosine` / `rank`, `sourceText`,
+`textHash` and the Float32 BLOB helpers. `npm run embed` (`scripts/embed.mjs`,
+`embedSessions()`) fills `session_embeddings`, skipping rows whose hash and model are
+unchanged; it is not part of `npm run dev`, so a fresh checkout searches by keyword
+until it is run with a key.
 
 ## Invariants
 
