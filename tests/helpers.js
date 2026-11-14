@@ -135,6 +135,8 @@ export const LANES = {
   // Rates for real, so it must land on day index 0 — `today` — per
   // smoke.spec.js's "no session in the future carries a rating".
   'attendance.rating-toast':  { desktop: { user: marcus, day: 0, slot: '09:00', agenda: false }, mobile: { user: abraham, day: 0, slot: '09:00', agenda: false } },
+  // Posts one photo and deletes it: no seat, check-in or rating, so agenda: false.
+  'photobooth.post':  { desktop: { user: jonas, day: 1, agenda: false },  mobile: { user: andy, day: 1, agenda: false } },
 };
 
 /**
